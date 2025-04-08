@@ -1,7 +1,7 @@
 Attribute VB_Name = "Module1"
 Sub ExtractFilePath()
     Dim folderPath As String
-    Dim fileName As String
+    Dim FileName As String
     Dim rootPath As String
     Dim ws As Worksheet
     Dim cellRow As Integer
@@ -42,19 +42,18 @@ Sub ExtractFilePath()
     For Each subFolder In folder.SubFolders
         ' Loop through each file in the subfolder
         For Each file In subFolder.Files
-            fileName = file.Name
+            FileName = file.Name
             rootPath = subFolder.Path ' Get the root path (parent folder) of the file
             
-            If fileName Like "UW*" And _
-               (Right(fileName, 4) = ".xls" Or Right(fileName, 5) = ".xlsx" Or Right(fileName, 5) = ".xlsm") Then
-                ws.Cells(cellRow, 1).value = fileName
+            If FileName Like "UW*" And _
+               (Right(FileName, 4) = ".xls" Or Right(FileName, 5) = ".xlsx" Or Right(FileName, 5) = ".xlsm") Then
+                ws.Cells(cellRow, 1).value = FileName
                 ws.Cells(cellRow, 2).value = rootPath
                 cellRow = cellRow + 1 ' Move to next row
             End If
         Next file
     Next subFolder
 
-    ' Activate the "UW file name" sheet to make sure the user sees the output
     ws.Activate
 
     Set fileSystem = Nothing
@@ -68,7 +67,7 @@ End Sub
 Sub CopyExtractedFiles()
     Dim destFolder As String
     Dim ws As Worksheet
-    Dim fileName As String
+    Dim FileName As String
     Dim rootPath As String
     Dim lastRow As Integer
     Dim i As Integer
@@ -99,14 +98,14 @@ Sub CopyExtractedFiles()
     
     ' Loop through each row in the "UW file name" sheet and copy the files
     For i = 2 To lastRow ' Assuming file names start from row 2
-        fileName = ws.Cells(i, "A").value
+        FileName = ws.Cells(i, "A").value
         rootPath = ws.Cells(i, "B").value ' Get the root path from column B
         
         ' Ensure the file name and root path are not empty
-        If fileName <> "" And rootPath <> "" Then
-            fullFilePath = rootPath & "\" & fileName
+        If FileName <> "" And rootPath <> "" Then
+            fullFilePath = rootPath & "\" & FileName
             If Dir(fullFilePath) <> "" Then
-                FileCopy fullFilePath, destFolder & fileName
+                FileCopy fullFilePath, destFolder & FileName
             Else
                 MsgBox "File not found: " & fullFilePath, vbExclamation
             End If
@@ -140,83 +139,6 @@ Sub RemoveRowsWithInvalidStyle()
 
 End Sub
 
-
-
-Sub ExtractCashFlowSheets()
-    Dim sourceWorkbook As Workbook
-    Dim sheet As Worksheet
-    Dim newSheet As Worksheet
-    Dim newSheetName As String
-    Dim invalidChars As String
-    Dim i As Integer
-    Dim sheetCounter As Integer
-    Dim folderPath As String
-    Dim fileName As String
-
-    ' Select the folder containing .xlsm files
-    With Application.fileDialog(msoFileDialogFolderPicker)
-        .Title = "Select the Folder Containing .xlsm Files"
-        If .Show = -1 Then
-            folderPath = .SelectedItems(1) & "\"
-        Else
-            MsgBox "No folder selected. Operation cancelled.", vbExclamation
-            Exit Sub
-        End If
-    End With
-
-    ' Loop through all the .xlsm files in the selected folder
-    fileName = Dir(folderPath & "*.xlsm")
-    Application.ScreenUpdating = False
-
-    Do While fileName <> ""
-        sheetCounter = 1
-        Set sourceWorkbook = Workbooks.Open(folderPath & fileName, ReadOnly:=True)
-
-        For Each sheet In sourceWorkbook.Sheets
-            ' Check if the sheet name contains "Cash Flow" but does not contain "Details" or "Footnote"
-            If sheet.Name Like "*Cash Flow*" And Not sheet.Name Like "*Aggregate Cash Flow*" And Not sheet.Name Like "*Cash Flow Detail*" And Not sheet.Name Like "*Cash Flow Footnote*" Then
-                
-                ' Suppress alerts to prevent duplicate named range warnings
-                Application.DisplayAlerts = False
-                sheet.Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
-                Application.DisplayAlerts = True ' Re-enable alerts
-
-                Set newSheet = ActiveSheet
-                newSheetName = newSheet.Range("H5").value
-
-                ' Remove invalid characters from the sheet name
-                invalidChars = "/\?*:[]"
-                For i = 1 To Len(invalidChars)
-                    newSheetName = Replace(newSheetName, Mid(invalidChars, i, 1), "")
-                Next i
-
-                ' Trim name length and append counter for uniqueness
-                If Len(newSheetName) > 25 Then
-                    newSheetName = Left(newSheetName, 25)
-                End If
-                newSheetName = newSheetName & " (" & sheetCounter & ")"
-                sheetCounter = sheetCounter + 1
-
-                ' Attempt renaming with error handling
-                On Error Resume Next
-                newSheet.Name = newSheetName
-                If Err.Number <> 0 Then
-                    MsgBox "Error renaming sheet to '" & newSheetName & "'. Please check for invalid characters or length."
-                    Err.Clear
-                End If
-                On Error GoTo 0 ' Reset error handling
-            End If
-        Next sheet
-
-        sourceWorkbook.Close False
-        fileName = Dir
-    Loop
-
-    Application.ScreenUpdating = True
-    MsgBox "Cash Flow sheets extracted and renamed successfully!", vbInformation
-End Sub
-
-
 Sub ExtractCashFlowSheetsValue()
     Dim sourceWorkbook As Workbook
     Dim sheet As Worksheet
@@ -226,7 +148,7 @@ Sub ExtractCashFlowSheetsValue()
     Dim i As Integer
     Dim sheetCounter As Integer
     Dim folderPath As String
-    Dim fileName As String
+    Dim FileName As String
     Dim netCashFlowCell As Range
     Dim copiedRange As Range
     Dim lastRow As Long
@@ -250,11 +172,11 @@ Sub ExtractCashFlowSheetsValue()
     End With
 
     ' Loop through all the .xlsm files in the selected folder
-    fileName = Dir(folderPath & "*.xlsm")
+    FileName = Dir(folderPath & "*.xlsm")
     
-    Do While fileName <> ""
+    Do While FileName <> ""
         sheetCounter = 0
-        Set sourceWorkbook = Workbooks.Open(folderPath & fileName, ReadOnly:=True)
+        Set sourceWorkbook = Workbooks.Open(folderPath & FileName, ReadOnly:=True)
 
         For Each sheet In sourceWorkbook.Sheets
             ' Check if the sheet name contains "Cash Flow" but does not contain "Details" or "Footnote"
@@ -329,7 +251,7 @@ Sub ExtractCashFlowSheetsValue()
         Next sheet
 
         sourceWorkbook.Close False
-        fileName = Dir
+        FileName = Dir
     Loop
 
     ' Re-enable pop-up alerts, screen updating, and calculations

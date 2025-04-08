@@ -15,7 +15,7 @@ Sub PullRentRoll()
     Dim i As Integer
     Dim sheetCounter As Integer
     Dim folderPath As String
-    Dim fileName As String
+    Dim FileName As String
     Dim netRentRollCell As Range
     Dim copiedRange As Range
     Dim lastRow As Long
@@ -39,11 +39,11 @@ Sub PullRentRoll()
     End With
 
     ' Loop through all the .xlsm files in the selected folder
-    fileName = Dir(folderPath & "*.xlsm")
+    FileName = Dir(folderPath & "*.xlsm")
     
-    Do While fileName <> ""
+    Do While FileName <> ""
         sheetCounter = 0
-        Set sourceWorkbook = Workbooks.Open(folderPath & fileName, ReadOnly:=True)
+        Set sourceWorkbook = Workbooks.Open(folderPath & FileName, ReadOnly:=True)
 
         For Each sheet In sourceWorkbook.Sheets
             ' Check if the sheet name contains "Rent Roll" but does not contain "Details" or "Footnote"
@@ -91,11 +91,11 @@ Sub PullRentRoll()
                     Wend
 
                     
-                    newSheetName = tempSheetName                                                       ' Now, set the unique sheet name
-                    Set newSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))           ' Create a new sheet in ThisWorkbook with the unique name
+                    newSheetName = tempSheetName                                                                    ' Now, set the unique sheet name
+                    Set newSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))   ' Create a new sheet in ThisWorkbook with the unique name
                     newSheet.Name = newSheetName
-                    newSheet.Range("A1").Resize(UBound(dataArray, 1), UBound(dataArray, 2)).value = dataArray               ' Write the dataArray back to the new sheet in one go
-                    copiedRange.Copy                                                                   ' Copy formats from the original range
+                    newSheet.Range("A1").Resize(UBound(dataArray, 1), UBound(dataArray, 2)).value = dataArray       ' Write the dataArray back to the new sheet in one go
+                    copiedRange.Copy                                                                                ' Copy formats from the original range
                     newSheet.Range("A1").PasteSpecial Paste:=xlPasteFormats
                     Application.CutCopyMode = False
                 End If
@@ -103,7 +103,7 @@ Sub PullRentRoll()
         Next sheet
 
         sourceWorkbook.Close False
-        fileName = Dir
+        FileName = Dir
     Loop
 
     ' Re-enable pop-up alerts, screen updating, and calculations

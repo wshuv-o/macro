@@ -165,7 +165,7 @@ Private Sub CommandButton2_Click()
         Set ws = ThisWorkbook.Sheets("Loan")
         On Error GoTo 0
         If Not ws Is Nothing Then
-            lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+            lastRow = ws.Cells(ws.Rows.Count, 3).End(xlUp).Row
             If lastRow >= 6 Then
                 ws.Rows("6:" & lastRow).Delete
             End If
@@ -192,5 +192,9 @@ Private Sub CommandButton2_Click()
 End Sub
 
 Private Sub Label1_Click()
+
+End Sub
+
+Private Sub UserForm_Click()
 
 End Sub

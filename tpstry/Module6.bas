@@ -18,6 +18,11 @@ Sub ProcessRentRollAnalysis()
     Dim RentRollsLastRow As Long
     Dim mappingSheet As Worksheet
     
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    
+    
     Set trackerSheet = ThisWorkbook.Sheets("Tracker")
     Set mfRentRollsSheet = ThisWorkbook.Sheets("MF Rent Rolls")
     Set RentRollSheet = ThisWorkbook.Sheets("Rent Roll")
@@ -122,6 +127,11 @@ Sub ProcessRentRollAnalysis()
     If RentRollSheet.Cells(RentRollSheet.Rows.Count, 1).End(xlUp).Row > 2 Then
         RentRollSheet.Rows(RentRollSheet.Cells(RentRollSheet.Rows.Count, 1).End(xlUp).Row).Delete
     End If
+    
+    Application.ScreenUpdating = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
+
     
 End Sub
 

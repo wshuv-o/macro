@@ -27,30 +27,40 @@ Sub PullDataFromFolder()
     Dim invalidChars As String
     Dim i As Integer
     Dim sheetCounter As Integer
-    '-------------------Asset Sheet---------------
+    '-------------------Asset pull Vars---------------
     Dim assetSheet As Worksheet
     Dim aggregateCashFlow As Worksheet
     Dim incrementRowAsset As Integer
     Dim loanSheet As Worksheet
     Dim incrementRowLoan As Integer
-    
-    '--------------------
     Dim lastRowTrackerSheet As Integer
     Dim foundCell As Range
-    
     Dim lastRowBorrowerSheet As Long
     Dim foundCellBorrower As Range
     Dim borrower As String, sponsor As String
     Dim currentBorrowerRow As Long
     
+    '-------------------Sponsor & Borrower --------------
+    Dim sponsorSheet As Worksheet
+    Dim borrowerSheet As Worksheet
+    Dim incrementRowSponsor As Integer
+    Dim incrementRowBorrower As Integer
+    
+    
+    
     ' Set destination sheet for output
     Set destSheet = ThisWorkbook.Sheets("Tracker")
     Set assetSheet = ThisWorkbook.Sheets("Asset")
     Set loanSheet = ThisWorkbook.Sheets("Loan")
+    Set sponsorSheet = ThisWorkbook.Sheets("Sponsor")
+    Set borrowerSheet = ThisWorkbook.Sheets("Borrower")
+    
     incrementRow = 2
     incrementRowAsset = 6
     incrementRowLoan = 6
-
+    incrementRowSponsor = 2
+    incrementRowBorrower = 2
+    
     ' Select folder containing subfolders/files.xlsm
     With Application.fileDialog(msoFileDialogFolderPicker)
         .Title = "Select Folder Containing Subfolders"
@@ -62,7 +72,6 @@ Sub PullDataFromFolder()
         End If
     End With
 
-    ' Initialize FileSystemObject
     Set fso = CreateObject("Scripting.FileSystemObject")
     
     ' Disable screen updating, calculations, and events to improve performance
@@ -105,46 +114,43 @@ Sub PullDataFromFolder()
                             Not loanSummarySheet.Cells(loanSummaryRow, 6).value Like "*Total*"
     
                             ' Populate Tracker data columns A to G
-                            destSheet.Cells(incrementRow, 1).value = subFolderPart1
-                            destSheet.Cells(incrementRow, 2).value = subFolderPart1 & "-" & increment
-                            destSheet.Cells(incrementRow, 3).value = subFolderPart2
-                            destSheet.Cells(incrementRow, 4).value = loanSummarySheet.Cells(loanSummaryRow, 6).value ' Asset name
+                            destSheet.Cells(incrementRow, 1).value = "hello" & subFolderPart1                                             ' Loan ID
+                            destSheet.Cells(incrementRow, 2).value = subFolderPart1 & "-" & increment                           ' Asset ID
+                            destSheet.Cells(incrementRow, 3).value = subFolderPart2                                             ' Loan Name
+                            destSheet.Cells(incrementRow, 4).value = loanSummarySheet.Cells(loanSummaryRow, 6).value            ' Asset name
                             destSheet.Cells(incrementRow, 5).value = _
                                 loanSummarySheet.Cells(loanSummaryRow, 20).value & ", " & _
                                 loanSummarySheet.Cells(loanSummaryRow, 22).value & ", " & _
                                 loanSummarySheet.Cells(loanSummaryRow, 23).value & " " & _
-                                loanSummarySheet.Cells(loanSummaryRow, 24).value ' Address
-                            destSheet.Cells(incrementRow, 6).value = loanSummarySheet.Cells(loanSummaryRow, 9).value ' Loan Summary
-                            destSheet.Cells(incrementRow, 7).value = subFolder.Name ' Loan Name from Folder
+                                loanSummarySheet.Cells(loanSummaryRow, 24).value                                                ' Address
+                            destSheet.Cells(incrementRow, 6).value = loanSummarySheet.Cells(loanSummaryRow, 9).value            ' Loan Summary
+                            destSheet.Cells(incrementRow, 7).value = subFolder.Name                                             ' Loan Name from Folder
                             destSheet.Cells(incrementRow, 9).value = "=OFFSET(Mapping!$C$4, MATCH(F" & incrementRow & ", Mapping!$B$5:$B$60, 0), 0)"
                             
-                            
-                            
+                                            
                             
                             
                             ' Populate Asset data
                             assetSheet.Cells(incrementRowAsset, 1).value = subFolderPart1
                             assetSheet.Cells(incrementRowAsset, 2).value = subFolderPart1 & "-" & increment
-                            assetSheet.Cells(incrementRowAsset, 3).value = "=IFERROR(K" & incrementRowAsset & "/SUMIF($A:$A,$A" & incrementRowAsset & ",$K:$K),0)"
-                            assetSheet.Cells(incrementRowAsset, 4).value = loanSummarySheet.Cells(loanSummaryRow, 6).value ' Asset name
+                            assetSheet.Cells(incrementRowAsset, 3).value = "=IFERROR(L" & incrementRowAsset & "/SUMIF($A:$A,$A" & incrementRowAsset & ",$L:$L),0)"
+                            assetSheet.Cells(incrementRowAsset, 4).value = loanSummarySheet.Cells(loanSummaryRow, 6).value      ' Asset name
                             assetSheet.Cells(incrementRowAsset, 5).value = destSheet.Cells(incrementRow, 5).value
-                            assetSheet.Cells(incrementRowAsset, 6).value = loanSummarySheet.Cells(loanSummaryRow, 10).value 'Square Footage /Units
-                            
+                            assetSheet.Cells(incrementRowAsset, 6).value = loanSummarySheet.Cells(loanSummaryRow, 10).value     'Square Footage /Units
                             assetSheet.Cells(incrementRowAsset, 7).value = "=IF(OFFSET(Tracker!$I$1,MATCH(Asset!$B" & incrementRowAsset & ",Tracker!$B:$B,0)-1,0)=""Commercial"", F" & incrementRowAsset & ", """")" 'Square Footage
-                            
                             assetSheet.Cells(incrementRowAsset, 8).value = "=IF(OFFSET(Tracker!$I$1,MATCH(Asset!$B" & incrementRowAsset & ",Tracker!$B:$B,0)-1,0)=""Multifamily"", F" & incrementRowAsset & ", """")" 'Units
                             assetSheet.Cells(incrementRowAsset, 9).value = loanSummarySheet.Cells(loanSummaryRow, 9).value
                             assetSheet.Cells(incrementRowAsset, 10).value = loanSummarySheet.Cells(loanSummaryRow, 25).value
                             assetSheet.Cells(incrementRowAsset, 11).value = loanSummarySheet.Cells(loanSummaryRow, 26).value
                             assetSheet.Cells(incrementRowAsset, 12).value = loanSummarySheet.Cells(loanSummaryRow, 16).value    'Appraisal Value
-                            'assetSheet.Cells(incrementRowAsset, 13).value = ""                                                  'Appraisal value date
+                            'assetSheet.Cells(incrementRowAsset, 13).value = ""                                                 'Appraisal value date
                             assetSheet.Cells(incrementRowAsset, 14).value = loanSummarySheet.Cells(loanSummaryRow, 11).value    'NOI
-                            'assetSheet.Cells(incrementRowAsset, 15).value = ""                                                  'Net Operating Income at Origination
-                            'assetSheet.Cells(incrementRowAsset, 16).value = ""                                                  'Location Type
-                            'assetSheet.Cells(incrementRowAsset, 17).value = ""                                                  'Class
+                            'assetSheet.Cells(incrementRowAsset, 15).value = ""                                                 'Net Operating Income at Origination
+                            'assetSheet.Cells(incrementRowAsset, 16).value = ""                                                 'Location Type
+                            'assetSheet.Cells(incrementRowAsset, 17).value = ""                                                 'Class
                             assetSheet.Cells(incrementRowAsset, 18).value = loanSummarySheet.Cells(loanSummaryRow, 9).value     'Type of Use Detailed Description
                             assetSheet.Cells(incrementRowAsset, 19).value = loanSummarySheet.Cells(loanSummaryRow, 13).value    'Cap Rate
-                            'assetSheet.Cells(incrementRowAsset, 20).value = ""                                                  'Portfolio
+                            'assetSheet.Cells(incrementRowAsset, 20).value = ""                                                 'Portfolio
                             
                             
                             
@@ -157,7 +163,7 @@ Sub PullDataFromFolder()
                             If increment = 1 Then
                                 ' If the Loan ID in the current row is different, insert a new row and fill the data
                                 loanSheet.Cells(incrementRowLoan, 2).value = "=TEXTJOIN("", "", TRUE, FILTER(Tracker!B:B, Tracker!A:A=A" & incrementRowLoan & "))" ' Associated Asset(s) ID
-                                loanSheet.Cells(incrementRowLoan, 3).value = loanSummarySheet.Range("LS_NoteDate").value                                ' Note Date
+                                loanSheet.Cells(incrementRowLoan, 3).value = loanSummarySheet.Range("LS_NoteDate").value                        ' Note Date
                                 loanSheet.Cells(incrementRowLoan, 4).value = loanSummarySheet.Range("LS_ReqAmount").value                       ' Original Loan Amount
                                 loanSheet.Cells(incrementRowLoan, 5).value = loanSummarySheet.Range("LS_LoanAmount").value                      ' Current Loan Amount
                                 loanSheet.Cells(incrementRowLoan, 6).value = "=EOMONTH(C" & incrementRowLoan & ",AH" & incrementRowLoan & ")+1" ' Maturity Date
@@ -170,18 +176,17 @@ Sub PullDataFromFolder()
                                 loanSheet.Cells(incrementRowLoan, 13).value = "=EOMONTH(C" & incrementRowLoan & ",N" & incrementRowLoan & ")+1" ' Interest Only End Date
                                 loanSheet.Cells(incrementRowLoan, 14).value = loanSummarySheet.Range("IOPeriods").value                         ' Interest Only Period
                                 loanSheet.Cells(incrementRowLoan, 15).value = loanSummarySheet.Range("LoanAnalysis_Rate").value                 ' Interest Rate
-                                loanSheet.Cells(incrementRowLoan, 16).value = loanSummarySheet.Range("IndexValue").value                        ' Interest Rate Index
+                                loanSheet.Cells(incrementRowLoan, 16).value = loanSummarySheet.Range("LS_IndexType").value                      ' Interest Rate Index 'previously, loanSummarySheet.Range("IndexValue").value
                                 loanSheet.Cells(incrementRowLoan, 17).value = loanSummarySheet.Range("LS_Spread").value                         ' Interest Rate Spread
-                                loanSheet.Cells(incrementRowLoan, 18).value = loanSummarySheet.Range("LS_IndexType").value                      ' Interest Type
+                                loanSheet.Cells(incrementRowLoan, 18).value = "" ' Interest Type
                                 loanSheet.Cells(incrementRowLoan, 19).value = "" ' Commitment Amount
                                 loanSheet.Cells(incrementRowLoan, 20).value = "" ' Contact Name
                                 loanSheet.Cells(incrementRowLoan, 21).value = "" ' Contact Type
-                                loanSheet.Cells(incrementRowLoan, 22).value = "" ' Debt Yield at Origination
-                                loanSheet.Cells(incrementRowLoan, 23).value = "" ' DSCR at Origination
-                                loanSheet.Cells(incrementRowLoan, 24).value = loanSummarySheet.Range("AmortTerm").value ' Amortization Term
+                                loanSheet.Cells(incrementRowLoan, 22).value = loanSummarySheet.Range("W12").value                               ' Debt Yield at Origination
+                                loanSheet.Cells(incrementRowLoan, 23).value = loanSummarySheet.Range("R13").value                               ' DSCR at Origination
+                                loanSheet.Cells(incrementRowLoan, 24).value = loanSummarySheet.Range("AmortTerm").value                         ' Amortization Term
 
                                 Set foundCellBorrower = loanSummarySheet.Range("R:R").Find("Borrower / Sponsor", LookAt:=xlWhole)
-
                                 If Not foundCellBorrower Is Nothing Then
                                     ' Get the last row of data in Column R
                                     lastRowBorrowerSheet = loanSummarySheet.Cells(loanSummarySheet.Rows.Count, 18).End(xlUp).Row
@@ -189,36 +194,43 @@ Sub PullDataFromFolder()
                                     sponsor = ""
                                     For currentBorrowerRow = foundCellBorrower.Row + 1 To lastRowBorrowerSheet
                                         If loanSummarySheet.Cells(currentBorrowerRow, 20).value = "Borrower" Then
+                                            borrowerSheet.Cells(incrementRowSponsor, 1).value = subFolderPart1                                       ' Loan Id in Borrower Sheet
+                                            borrowerSheet.Cells(incrementRowSponsor, 2).value = loanSummarySheet.Cells(currentBorrowerRow, 18).value ' Sponsor in Borrower Sheet
+                                            borrowerSheet.Cells(incrementRowSponsor, 4).value = "Borrower"                                           ' Role Type in Borrower Sheet
                                             borrower = borrower & IIf(borrower = "", "", ", ") & loanSummarySheet.Cells(currentBorrowerRow, 18).value
+                                            incrementRowSponsor = incrementRowSponsor + 1
                                         ElseIf loanSummarySheet.Cells(currentBorrowerRow, 20).value = "Sponsor" Then
+                                            sponsorSheet.Cells(incrementRowBorrower, 1).value = subFolderPart1                                       ' Loan Id in Sponsor Sheet
+                                            sponsorSheet.Cells(incrementRowBorrower, 2).value = loanSummarySheet.Cells(currentBorrowerRow, 18).value ' Sponsor in Sponsor Sheet
+                                            sponsorSheet.Cells(incrementRowBorrower, 4).value = "Sponsor"                                            ' Role Type in Sponsor Sheet
                                             sponsor = sponsor & IIf(sponsor = "", "", ", ") & loanSummarySheet.Cells(currentBorrowerRow, 18).value
+                                            incrementRowBorrower = incrementRowBorrower + 1
                                         End If
                                     Next currentBorrowerRow
 
-                                    loanSheet.Cells(incrementRowLoan, 25).value = borrower ' Borrower
-                                    loanSheet.Cells(incrementRowLoan, 26).value = sponsor 'Sponsor
+                                    loanSheet.Cells(incrementRowLoan, 25).value = borrower                                                      ' Borrower
+                                    loanSheet.Cells(incrementRowLoan, 44).value = sponsor                                                       ' Sponsor
                                 End If
                                 
-                                loanSheet.Cells(incrementRowLoan, 27).value = loanSummarySheet.Range("FIPDate").value ' First Payment Date
-                                loanSheet.Cells(incrementRowLoan, 28).value = "" ' Grace Period
-                                loanSheet.Cells(incrementRowLoan, 29).value = "" ' Guarantor
-                                loanSheet.Cells(incrementRowLoan, 30).value = "" ' Lender
-                                loanSheet.Cells(incrementRowLoan, 31).value = "=INDEX(Tracker!C:C, MATCH(A" & incrementRowLoan & ", Tracker!A:A, 0))" ' Loan Name
-                                loanSheet.Cells(incrementRowLoan, 32).value = "" ' Loan Product
-                                loanSheet.Cells(incrementRowLoan, 33).value = loanSummarySheet.Range("LS_LoanPurpose").value                    ' Loan Purpose
-                                loanSheet.Cells(incrementRowLoan, 34).value = loanSummarySheet.Range("LS_Term").value                           ' Loan Term
-                                loanSheet.Cells(incrementRowLoan, 35).value = "" ' Loan Type
-                                loanSheet.Cells(incrementRowLoan, 36).value = "" ' LTC
-                                loanSheet.Cells(incrementRowLoan, 37).value = loanSummarySheet.Cells(12, 20).value                              ' LTV at Origination Loan Analysis!T12
-                                loanSheet.Cells(incrementRowLoan, 38).value = "" ' Next Payment Date
-                                loanSheet.Cells(incrementRowLoan, 39).value = "" ' Open Prepayment Date
-                                loanSheet.Cells(incrementRowLoan, 40).value = "" ' Origination Status
-                                loanSheet.Cells(incrementRowLoan, 41).value = "" ' Recourse
-                                loanSheet.Cells(incrementRowLoan, 42).value = "" ' Recourse Description
-                                loanSheet.Cells(incrementRowLoan, 43).value = "" ' Risk Rating
-                                loanSheet.Cells(incrementRowLoan, 44).value = "" ' Servicer
-                                loanSheet.Cells(incrementRowLoan, 45).value = "" ' Sponsor
-                                loanSheet.Cells(incrementRowLoan, 46).value = "" ' Watchlist Indicator
+                                loanSheet.Cells(incrementRowLoan, 26).value = loanSummarySheet.Range("FIPDate").value                           ' First Payment Date
+                                loanSheet.Cells(incrementRowLoan, 27).value = "" ' Grace Period
+                                loanSheet.Cells(incrementRowLoan, 28).value = "" ' Guarantor
+                                loanSheet.Cells(incrementRowLoan, 29).value = "" ' Lender
+                                loanSheet.Cells(incrementRowLoan, 30).value = "=INDEX(Tracker!C:C, MATCH(A" & incrementRowLoan & ", Tracker!A:A, 0))" ' Loan Name
+                                loanSheet.Cells(incrementRowLoan, 31).value = "" ' Loan Product
+                                loanSheet.Cells(incrementRowLoan, 32).value = loanSummarySheet.Range("LS_LoanPurpose").value                    ' Loan Purpose
+                                loanSheet.Cells(incrementRowLoan, 33).value = loanSummarySheet.Range("LS_Term").value                           ' Loan Term
+                                loanSheet.Cells(incrementRowLoan, 34).value = "" ' Loan Type
+                                loanSheet.Cells(incrementRowLoan, 35).value = "" ' LTC
+                                loanSheet.Cells(incrementRowLoan, 36).value = loanSummarySheet.Cells(12, 20).value                              ' LTV at Origination Loan Analysis!T12
+                                loanSheet.Cells(incrementRowLoan, 37).value = "" ' Next Payment Date
+                                loanSheet.Cells(incrementRowLoan, 38).value = "" ' Open Prepayment Date
+                                loanSheet.Cells(incrementRowLoan, 39).value = "" ' Origination Status
+                                loanSheet.Cells(incrementRowLoan, 40).value = "" ' Recourse
+                                loanSheet.Cells(incrementRowLoan, 41).value = "" ' Recourse Description
+                                loanSheet.Cells(incrementRowLoan, 42).value = "" ' Risk Rating
+                                loanSheet.Cells(incrementRowLoan, 43).value = "" ' Servicer
+                                loanSheet.Cells(incrementRowLoan, 45).value = "" ' Watchlist Indicator
                                 
                                 incrementRowLoan = incrementRowLoan + 1 ' Move to the next row
                             End If
@@ -269,8 +281,7 @@ Sub PullDataFromFolder()
                                 ' Check if a sheet with this name already exists, and if so, append a counter
                                 Dim tempSheetName As String
                                 tempSheetName = newSheetName
-                                sheetCounter = 0 ' Reset the counter each time
-
+                                sheetCounter = 0
                                 On Error Resume Next
                                 Set newSheet = ThisWorkbook.Sheets(tempSheetName)
                                 On Error GoTo 0
@@ -291,19 +302,14 @@ Sub PullDataFromFolder()
                                 ' Create a new sheet in ThisWorkbook with the unique name
                                 Set newSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
                                 newSheet.Name = newSheetName
-
-                                ' Write the dataArray back to the new sheet in one go
                                 newSheet.Range("A1").Resize(UBound(dataArray, 1), UBound(dataArray, 2)).value = dataArray
-
-                                ' Copy formats from the original range
                                 copiedRange.Copy
                                 newSheet.Range("A1").PasteSpecial Paste:=xlPasteFormats
                                 Application.CutCopyMode = False
                             End If
                         End If
                     Next sheet
-                    
-                    ' Close the workbook without saving
+                
                     wb.Close False
 
                 End If
@@ -312,10 +318,6 @@ Sub PullDataFromFolder()
     Next subFolder
 
 
-
-
-
-    ' Re-enable screen updating, calculation, events, and status bar
     Application.DisplayAlerts = True
     Application.ScreenUpdating = True
     Application.Calculation = xlCalculationAutomatic

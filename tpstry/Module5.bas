@@ -12,6 +12,9 @@ Sub CopyDataToFinancials()
     Dim ws As Worksheet
     Dim flag As Boolean
     
+    Dim lastRow As Long
+    Dim tempValue As Double
+    
     
     Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
@@ -40,6 +43,16 @@ Sub CopyDataToFinancials()
                     wsFinancials.Cells(nextRow, 1).Formula = "=OFFSET(Tracker!$B$1,MATCH($K" & nextRow & ",Tracker!$D:$D,0)-1,0)"
                     wsFinancials.Range(wsFinancials.Cells(nextRow, 1), wsFinancials.Cells(nextRow + lastRowSource - 7, 1)).FillDown
                     
+                    wsFinancials.Cells(nextRow, 6).Formula = "=INDEX('CF Mapping'!$A$3:$A$235, MATCH(H" & nextRow & ", 'CF Mapping'!$C$3:$C$235, 0))"
+                    wsFinancials.Range(wsFinancials.Cells(nextRow, 6), wsFinancials.Cells(nextRow + lastRowSource - 7, 6)).FillDown
+                    
+                    wsFinancials.Cells(nextRow, 7).Formula = "=INDEX('CF Mapping'!$B$3:$B$235, MATCH(H" & nextRow & ", 'CF Mapping'!$C$3:$C$235, 0))"
+                    wsFinancials.Range(wsFinancials.Cells(nextRow, 7), wsFinancials.Cells(nextRow + lastRowSource - 7, 7)).FillDown
+
+                    
+                    wsFinancials.Cells(nextRow, 12).Formula = "=INDEX(Tracker!$I:$I, MATCH(A" & nextRow & ", Tracker!$B:$B, 0))"
+                    wsFinancials.Range(wsFinancials.Cells(nextRow, 12), wsFinancials.Cells(nextRow + lastRowSource - 7, 12)).FillDown
+                    
                     
                     wsFinancials.Cells(nextRow, 2).Formula = "=IF(C" & nextRow & "=1,""Excluded"",DATE(YEAR(C" & nextRow & ")-1,MONTH(C" & nextRow & "),DAY(C" & nextRow & ")+1))" ' Populate Column B
                     wsFinancials.Range(wsFinancials.Cells(nextRow, 2), wsFinancials.Cells(nextRow + lastRowSource - 7, 2)).FillDown
@@ -48,12 +61,12 @@ Sub CopyDataToFinancials()
                     
                     wsFinancials.Cells(nextRow, 5).Resize(lastRowSource - 6, 1).value = wsSource.Cells(4, col + 1).value                          ' Populate Column E
                     
-                    Set copyRange = wsSource.Range("A7:A" & lastRowSource)                                                                      ' Populate Column H
+                    Set copyRange = wsSource.Range("A7:A" & lastRowSource)                                                                        ' Populate Column H
                     wsFinancials.Cells(nextRow, 8).Resize(copyRange.Rows.Count, 1).value = copyRange.value
                     
-                    Set copyRange = wsSource.Range(wsSource.Cells(7, col), wsSource.Cells(lastRowSource, col))                                  ' Populate Column I
+                    Set copyRange = wsSource.Range(wsSource.Cells(7, col), wsSource.Cells(lastRowSource, col))                                    ' Populate Column I
                     wsFinancials.Cells(nextRow, 9).Resize(copyRange.Rows.Count, 1).value = copyRange.value
-                    
+
                     Dim cellValue As String
                     cellValue = wsSource.Cells(2, 1).value ' Get the value from source cashflow[A2]
                     
@@ -72,7 +85,7 @@ Sub CopyDataToFinancials()
                         wsFinancials.Cells(nextRow, 11).Resize(lastRowSource - 6, 1).value = cellValue
                     End If
                     
-                    
+
                      
                     wsFinancials.Cells(nextRow, 14).Resize(lastRowSource - 6, 1).value = Mid(wsSource.Cells(2, col).value, InStr(1, wsSource.Cells(2, col).value, " ") + 1)  ' Populate Column N (Statement Type)
         
@@ -102,6 +115,20 @@ Sub CopyDataToFinancials()
             Next col
         End If
     Next ws
+    
+    
+    lastRow = wsFinancials.Cells(wsFinancials.Rows.Count, 1).End(xlUp).Row ' Find last row in column A
+
+    For i = 4 To lastRow
+        tempValue = wsFinancials.Cells(i, 9).value ' Store Column I value in a variable
+        
+        If wsFinancials.Cells(i, 8).value Like "Less:*" Then ' Check if Column H contains "Less:*"
+            tempValue = -Abs(tempValue) ' Make value negative
+        End If
+        
+        wsFinancials.Cells(i, 9).value = tempValue ' Assign the modified (or unchanged) value back to Column I
+    Next i
+
 
     Application.ScreenUpdating = True
     Application.Calculation = xlCalculationAutomatic
