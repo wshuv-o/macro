@@ -13,3 +13,4 @@ Function FirstNonEmptyAdjacent(ws As Worksheet, searchTextArray As Variant, dire
     Next
     FirstNonEmptyAdjacent = "No Value Found"
 End Function
+'Add description here how to use this function
