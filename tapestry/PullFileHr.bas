@@ -123,7 +123,7 @@ Sub HighlightLoanReview()
                 cell.Font.Color = vbWhite
             End If
         End If
-    Next cell
+    Next cell 
     
     MsgBox "Cells containing 'Loan Review' highlighted in green.", vbInformation
 End Sub
