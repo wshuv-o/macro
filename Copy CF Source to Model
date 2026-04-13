@@ -1,0 +1,326 @@
+Sub CopyCFData()
+
+    Dim thisFolderPath  As String
+    Dim sourceFilePath  As String
+    Dim srcWB           As Workbook
+    Dim srcWS           As Worksheet
+    Dim dstWS           As Worksheet
+    Dim srcUsedRng      As Range
+    Dim insertRow       As Long
+    Dim i               As Long
+
+    Dim srcUIDCol       As Long
+    Dim dstUIDCol       As Long
+    Dim uidHeader       As String
+
+    Dim srcLastCol      As Long
+    Dim dstLastCol      As Long
+    Dim srcLastDataRow  As Long
+    Dim srcRow1Val      As String
+    Dim srcRow4Val      As String
+    Dim srcLineItem     As String
+    Dim matchCol        As Long
+    Dim lastLineItemCol As Long
+    Dim plusPos         As Integer
+
+    ' ---------------------------------------------------------
+    ' 1. Resolve source file path dynamically
+    ' ---------------------------------------------------------
+    thisFolderPath = ThisWorkbook.Path & Application.PathSeparator
+    sourceFilePath = thisFolderPath & "Cash Flow Source Model.xlsx"
+
+    If Dir(sourceFilePath) = "" Then
+        MsgBox "Source file not found:" & vbCrLf & vbCrLf & sourceFilePath, _
+               vbExclamation, "File Not Found"
+        Exit Sub
+    End If
+
+    ' ---------------------------------------------------------
+    ' 2. Get destination CF Data sheet
+    ' ---------------------------------------------------------
+    On Error Resume Next
+    Set dstWS = ThisWorkbook.Sheets("CF Data")
+    On Error GoTo 0
+
+    If dstWS Is Nothing Then
+        MsgBox "Sheet 'CF Data' not found in this workbook.", vbExclamation, "Sheet Not Found"
+        Exit Sub
+    End If
+
+    ' ---------------------------------------------------------
+    ' 3. Open source file silently
+    ' ---------------------------------------------------------
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts  = False
+
+    Set srcWB = Workbooks.Open(Filename:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False)
+
+    On Error Resume Next
+    Set srcWS = srcWB.Sheets("CF Data")
+    On Error GoTo 0
+
+    If srcWS Is Nothing Then
+        MsgBox "Sheet 'CF Data' not found in source file.", vbExclamation, "Sheet Not Found"
+        srcWB.Close SaveChanges:=False
+        GoTo Cleanup
+    End If
+
+    Set srcUsedRng = srcWS.UsedRange
+    srcLastCol     = srcUsedRng.Column + srcUsedRng.Columns.Count - 1
+    srcLastDataRow = srcUsedRng.Row + srcUsedRng.Rows.Count - 1
+
+    ' ---------------------------------------------------------
+    ' 4. Detect UID column: PropID > Property Name > Ask user
+    ' ---------------------------------------------------------
+    srcUIDCol = 0
+    dstUIDCol = 0
+    uidHeader = ""
+
+    Dim c As Long
+    For c = srcUsedRng.Column To srcLastCol
+        If Trim(LCase(CStr(srcWS.Cells(4, c).Value))) = "propid" Then
+            srcUIDCol = c
+            uidHeader = "PropID"
+            Exit For
+        End If
+    Next c
+
+    If srcUIDCol = 0 Then
+        For c = srcUsedRng.Column To srcLastCol
+            If Trim(LCase(CStr(srcWS.Cells(4, c).Value))) = "property name" Then
+                srcUIDCol = c
+                uidHeader = "Property Name"
+                Exit For
+            End If
+        Next c
+    End If
+
+    If srcUIDCol = 0 Then
+        Application.ScreenUpdating = True
+        Dim userUID As String
+        userUID = InputBox("Could not find 'PropID' or 'Property Name' in source Row 4." & vbCrLf & vbCrLf & _
+                           "Please enter the exact column header to use as the unique identifier:", _
+                           "Unique Identifier Column")
+        Application.ScreenUpdating = False
+
+        If Trim(userUID) = "" Then
+            MsgBox "No unique identifier entered. Macro cancelled.", vbExclamation, "Cancelled"
+            srcWB.Close SaveChanges:=False
+            GoTo Cleanup
+        End If
+
+        For c = srcUsedRng.Column To srcLastCol
+            If Trim(LCase(CStr(srcWS.Cells(4, c).Value))) = Trim(LCase(userUID)) Then
+                srcUIDCol = c
+                uidHeader = Trim(userUID)
+                Exit For
+            End If
+        Next c
+
+        If srcUIDCol = 0 Then
+            MsgBox "Column '" & userUID & "' not found in source Row 4. Macro cancelled.", _
+                   vbExclamation, "Column Not Found"
+            srcWB.Close SaveChanges:=False
+            GoTo Cleanup
+        End If
+    End If
+
+    ' Find UID column in destination Row 4
+    dstLastCol = dstWS.UsedRange.Column + dstWS.UsedRange.Columns.Count - 1
+    For c = 1 To dstLastCol
+        If Trim(LCase(CStr(dstWS.Cells(4, c).Value))) = Trim(LCase(uidHeader)) Then
+            dstUIDCol = c
+            Exit For
+        End If
+    Next c
+
+    If dstUIDCol = 0 Then
+        MsgBox "UID column '" & uidHeader & "' not found in destination Row 4. Macro cancelled.", _
+               vbExclamation, "Column Not Found"
+        srcWB.Close SaveChanges:=False
+        GoTo Cleanup
+    End If
+
+    ' ---------------------------------------------------------
+    ' 5. Find first blank row from Row 5 (insert point)
+    ' ---------------------------------------------------------
+    insertRow = 5
+    For i = 5 To dstWS.Rows.Count
+        If Application.WorksheetFunction.CountA(dstWS.Rows(i)) = 0 Then
+            insertRow = i
+            Exit For
+        End If
+    Next i
+
+    ' ---------------------------------------------------------
+    ' 6. Build dictionary of existing PropID -> row in destination
+    ' ---------------------------------------------------------
+    Dim dstUIDDict   As Object
+    Set dstUIDDict = CreateObject("Scripting.Dictionary")
+
+    Dim dstLastDataRow As Long
+    dstLastDataRow = insertRow - 1
+
+    For i = 5 To dstLastDataRow
+        Dim dstUID As String
+        dstUID = Trim(CStr(dstWS.Cells(i, dstUIDCol).Value))
+        If dstUID <> "" Then dstUIDDict(dstUID) = i
+    Next i
+
+    ' ---------------------------------------------------------
+    ' 7. Build column map: source col -> destination col
+    '    (Row1 + Row4 match; insert new column if not found)
+    ' ---------------------------------------------------------
+    Dim colMap() As Long
+    ReDim colMap(srcUsedRng.Column To srcLastCol)
+
+    dstLastCol = dstWS.UsedRange.Column + dstWS.UsedRange.Columns.Count - 1
+
+    Dim srcCol As Long
+    For srcCol = srcUsedRng.Column To srcLastCol
+
+        srcRow1Val = Trim(CStr(srcWS.Cells(1, srcCol).Value))
+        srcRow4Val = Trim(CStr(srcWS.Cells(4, srcCol).Value))
+
+        If srcRow1Val = "" And srcRow4Val = "" Then
+            colMap(srcCol) = 0
+            GoTo NextColMap
+        End If
+
+        plusPos = InStr(srcRow1Val, "+")
+        If plusPos > 0 Then
+            srcLineItem = Trim(Left(srcRow1Val, plusPos - 1))
+        Else
+            srcLineItem = srcRow1Val
+        End If
+
+        matchCol        = 0
+        lastLineItemCol = 0
+
+        Dim dstCol As Long
+        For dstCol = 1 To dstLastCol
+            Dim dstRow1Val  As String
+            Dim dstRow4Val  As String
+            Dim dstLineItem As String
+            Dim dstPlusPos  As Integer
+
+            dstRow1Val = Trim(CStr(dstWS.Cells(1, dstCol).Value))
+            dstRow4Val = Trim(CStr(dstWS.Cells(4, dstCol).Value))
+
+            dstPlusPos = InStr(dstRow1Val, "+")
+            If dstPlusPos > 0 Then
+                dstLineItem = Trim(Left(dstRow1Val, dstPlusPos - 1))
+            Else
+                dstLineItem = dstRow1Val
+            End If
+
+            If dstLineItem = srcLineItem Then lastLineItemCol = dstCol
+
+            If dstRow1Val = srcRow1Val And dstRow4Val = srcRow4Val Then
+                matchCol = dstCol
+                Exit For
+            End If
+        Next dstCol
+
+        If matchCol = 0 Then
+            If lastLineItemCol = 0 Then lastLineItemCol = dstLastCol
+
+            dstWS.Columns(lastLineItemCol + 1).Insert Shift:=xlToRight
+
+            dstWS.Cells(1, lastLineItemCol + 1).Value      = srcRow1Val
+            dstWS.Cells(1, lastLineItemCol + 1).Font.Color = srcWS.Cells(1, srcCol).Font.Color
+            dstWS.Cells(4, lastLineItemCol + 1).Value      = srcRow4Val
+            dstWS.Cells(4, lastLineItemCol + 1).Font.Color = srcWS.Cells(4, srcCol).Font.Color
+            dstWS.Columns(lastLineItemCol + 1).ColumnWidth = srcWS.Columns(srcCol).ColumnWidth
+
+            matchCol   = lastLineItemCol + 1
+            dstLastCol = dstLastCol + 1
+        End If
+
+        colMap(srcCol) = matchCol
+
+NextColMap:
+    Next srcCol
+
+    ' ---------------------------------------------------------
+    ' 8. Merge row by row using UID
+    ' ---------------------------------------------------------
+    Dim srcRow      As Long
+    Dim targetRow   As Long
+    Dim srcUIDVal   As String
+    Dim isNewRow    As Boolean
+
+    For srcRow = 5 To srcLastDataRow
+
+        srcUIDVal = Trim(CStr(srcWS.Cells(srcRow, srcUIDCol).Value))
+        If srcUIDVal = "" Then GoTo NextSrcRow
+
+        isNewRow = False
+
+        If dstUIDDict.exists(srcUIDVal) Then
+            ' Existing row — update in place
+            targetRow = dstUIDDict(srcUIDVal)
+        Else
+            ' New PropID — insert row at insertRow (Ctrl+'+' style)
+            dstWS.Rows(insertRow).Insert Shift:=xlShiftDown
+
+            ' Copy formulas from the row above into the new row
+            ' (mirrors what Excel does on manual Ctrl+'+' insert)
+            Dim aboveRow As Long
+            aboveRow = insertRow - 1
+
+            For c = 1 To dstLastCol
+                Dim aboveCell As Range
+                Set aboveCell = dstWS.Cells(aboveRow, c)
+                If aboveCell.HasFormula Then
+                    ' Paste formula from row above — Excel auto-adjusts
+                    ' relative references when copying one row down
+                    aboveCell.Copy
+                    dstWS.Cells(insertRow, c).PasteSpecial Paste:=xlPasteFormulas
+                    Application.CutCopyMode = False
+                End If
+            Next c
+
+            targetRow = insertRow
+            dstUIDDict(srcUIDVal) = targetRow
+            insertRow  = insertRow + 1
+            isNewRow   = True
+        End If
+
+        ' ---------------------------------------------------------
+        ' Write values column by column
+        '   - Existing row: SKIP if destination cell has a formula
+        '   - New row:      SKIP if cell already got a formula
+        '                   pasted from row above (handled above)
+        ' ---------------------------------------------------------
+        For srcCol = srcUsedRng.Column To srcLastCol
+            If colMap(srcCol) = 0 Then GoTo NextSrcCol
+
+            Dim dstCell As Range
+            Set dstCell = dstWS.Cells(targetRow, colMap(srcCol))
+
+            ' Never overwrite a formula cell — EXCEPT the UID column
+            ' (UID must always have its real value so new rows are identifiable)
+            If dstCell.HasFormula And colMap(srcCol) <> dstUIDCol Then GoTo NextSrcCol
+
+            dstCell.Value = srcWS.Cells(srcRow, srcCol).Value
+
+NextSrcCol:
+        Next srcCol
+
+NextSrcRow:
+    Next srcRow
+
+    ' ---------------------------------------------------------
+    ' 9. Close source without saving
+    ' ---------------------------------------------------------
+    srcWB.Close SaveChanges:=False
+
+    MsgBox "Done! CF Data merged using '" & uidHeader & "' as unique identifier.", _
+           vbInformation, "Macro Complete"
+
+Cleanup:
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts  = True
+
+End Sub
