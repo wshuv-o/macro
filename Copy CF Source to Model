@@ -51,7 +51,7 @@ Sub CopyCFData()
     ' 3. Open source file silently
     ' ---------------------------------------------------------
     Application.ScreenUpdating = False
-    Application.DisplayAlerts = False
+    Application.DisplayAlerts  = False
 
     Set srcWB = Workbooks.Open(Filename:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False)
 
@@ -66,7 +66,7 @@ Sub CopyCFData()
     End If
 
     Set srcUsedRng = srcWS.UsedRange
-    srcLastCol = srcUsedRng.Column + srcUsedRng.Columns.Count - 1
+    srcLastCol     = srcUsedRng.Column + srcUsedRng.Columns.Count - 1
     srcLastDataRow = srcUsedRng.Row + srcUsedRng.Rows.Count - 1
 
     ' ---------------------------------------------------------
@@ -173,7 +173,7 @@ Sub CopyCFData()
     '
     '    Source has divider columns (blank Row1+Row4, Row3 has
     '    section name like "Only Steps"). If the destination is
-    '    missing that divider, we insert it now â€” in the correct
+    '    missing that divider, we insert it now — in the correct
     '    position relative to the NEXT section that already exists.
     '
     '    This ensures that when Step 8 inserts data columns,
@@ -214,7 +214,7 @@ Sub CopyCFData()
 
         If divExists Then GoTo NextDivider
 
-        ' Divider missing â€” find insert position.
+        ' Divider missing — find insert position.
         ' Look at the NEXT section divider in the source that
         ' DOES exist in the destination, and insert before it.
         Dim insertDivBefore As Long
@@ -309,7 +309,7 @@ NextDivider:
     ' ---------------------------------------------------------
     ' 8. Build column map: source col -> destination col
     '    (Row1 + Row4 match; smart positional insert if not found)
-    '    ORIGINAL LOGIC â€” no changes needed now because all
+    '    ORIGINAL LOGIC — no changes needed now because all
     '    section dividers are in place.
     ' ---------------------------------------------------------
     Dim colMap() As Long
@@ -335,7 +335,7 @@ NextDivider:
             srcLineItem = srcRow1Val
         End If
 
-        matchCol = 0
+        matchCol        = 0
         lastLineItemCol = 0
 
         Dim dstCol As Long
@@ -364,7 +364,7 @@ NextDivider:
         Next dstCol
 
         ' ---------------------------------------------------------
-        ' No match found â€” determine best insert position
+        ' No match found — determine best insert position
         ' by scanning source columns AFTER srcCol to find the
         ' next neighbour that DOES exist in destination
         ' ---------------------------------------------------------
@@ -375,20 +375,20 @@ NextDivider:
             Dim neighbourCol As Long
             neighbourCol = 0
 
-            Dim NextSrcCol As Long
-            For NextSrcCol = srcCol + 1 To srcLastCol
+            Dim nextSrcCol As Long
+            For nextSrcCol = srcCol + 1 To srcLastCol
 
                 Dim nextRow1 As String
                 Dim nextRow4 As String
-                nextRow1 = Trim(CStr(srcWS.Cells(1, NextSrcCol).Value))
-                nextRow4 = Trim(CStr(srcWS.Cells(4, NextSrcCol).Value))
+                nextRow1 = Trim(CStr(srcWS.Cells(1, nextSrcCol).Value))
+                nextRow4 = Trim(CStr(srcWS.Cells(4, nextSrcCol).Value))
 
                 If nextRow1 = "" And nextRow4 = "" Then
                     ' Check if this is a section divider (Row3 non-empty)
                     ' If so, find its matching divider in destination
                     ' and use it as the insert-before anchor.
                     Dim nextRow3 As String
-                    nextRow3 = Trim(CStr(srcWS.Cells(3, NextSrcCol).Value))
+                    nextRow3 = Trim(CStr(srcWS.Cells(3, nextSrcCol).Value))
                     If nextRow3 <> "" Then
                         Dim divFindCol As Long
                         For divFindCol = 1 To dstLastCol
@@ -396,7 +396,7 @@ NextDivider:
                                 If Trim(CStr(dstWS.Cells(1, divFindCol).Value)) = "" And _
                                    Trim(CStr(dstWS.Cells(4, divFindCol).Value)) = "" Then
                                     insertBeforeCol = divFindCol
-                                    neighbourCol = divFindCol
+                                    neighbourCol    = divFindCol
                                     GoTo FoundNeighbour
                                 End If
                             End If
@@ -407,13 +407,13 @@ NextDivider:
 
                 Dim alreadyMapped As Long
                 alreadyMapped = 0
-                If NextSrcCol <= UBound(colMap) And NextSrcCol >= LBound(colMap) Then
-                    alreadyMapped = colMap(NextSrcCol)
+                If nextSrcCol <= UBound(colMap) And nextSrcCol >= LBound(colMap) Then
+                    alreadyMapped = colMap(nextSrcCol)
                 End If
 
                 If alreadyMapped > 0 Then
                     insertBeforeCol = alreadyMapped
-                    neighbourCol = alreadyMapped
+                    neighbourCol    = alreadyMapped
                     GoTo FoundNeighbour
                 End If
 
@@ -425,13 +425,13 @@ NextDivider:
                     nDstRow4 = Trim(CStr(dstWS.Cells(4, nDstCol).Value))
                     If nDstRow1 = nextRow1 And nDstRow4 = nextRow4 Then
                         insertBeforeCol = nDstCol
-                        neighbourCol = nDstCol
+                        neighbourCol    = nDstCol
                         GoTo FoundNeighbour
                     End If
                 Next nDstCol
 
 NextNeighbour:
-            Next NextSrcCol
+            Next nextSrcCol
 
 FoundNeighbour:
 
@@ -441,17 +441,17 @@ FoundNeighbour:
                 finalInsertCol = insertBeforeCol
             ElseIf lastLineItemCol > 0 Then
                 finalInsertCol = lastLineItemCol + 1
-                neighbourCol = lastLineItemCol
+                neighbourCol   = lastLineItemCol
             Else
                 finalInsertCol = dstLastCol + 1
-                neighbourCol = dstLastCol
+                neighbourCol   = dstLastCol
             End If
 
             ' Insert the new column
             dstWS.Columns(finalInsertCol).Insert Shift:=xlToRight
 
             ' Write Row 3, Row 2, Row 1 as hardcoded VALUES from source.
-            ' Do NOT copy formulas from neighbours â€” formula propagation
+            ' Do NOT copy formulas from neighbours — formula propagation
             ' (Row2=IF(Row3="",left,Row3)) can resolve to the wrong
             ' section name when inserting between sections.
             ' Hardcoding values is safe because the VBA reads the
@@ -461,13 +461,13 @@ FoundNeighbour:
             dstWS.Cells(1, finalInsertCol).Value = srcRow1Val
 
             ' Row 4: year/period value
-            dstWS.Cells(4, finalInsertCol).Value = srcRow4Val
+            dstWS.Cells(4, finalInsertCol).Value      = srcRow4Val
             dstWS.Cells(4, finalInsertCol).Font.Color = srcWS.Cells(4, srcCol).Font.Color
 
             ' Copy column width from source
             dstWS.Columns(finalInsertCol).ColumnWidth = srcWS.Columns(srcCol).ColumnWidth
 
-            matchCol = finalInsertCol
+            matchCol   = finalInsertCol
             dstLastCol = dstLastCol + 1
 
             ' Shift all already-resolved colMap entries at or beyond insert point
@@ -503,7 +503,7 @@ NextColMap:
         If dstUIDDict.exists(srcUIDVal) Then
             targetRow = dstUIDDict(srcUIDVal)
         Else
-            ' New PropID â€” insert row (Ctrl+'+' style)
+            ' New PropID — insert row (Ctrl+'+' style)
             dstWS.Rows(insertRow).Insert Shift:=xlShiftDown
 
             ' Copy formulas from row above into new row
@@ -522,8 +522,8 @@ NextColMap:
 
             targetRow = insertRow
             dstUIDDict(srcUIDVal) = targetRow
-            insertRow = insertRow + 1
-            isNewRow = True
+            insertRow  = insertRow + 1
+            isNewRow   = True
         End If
 
         ' Write values column by column
@@ -533,7 +533,7 @@ NextColMap:
             Dim dstCell As Range
             Set dstCell = dstWS.Cells(targetRow, colMap(srcCol))
 
-            ' Never overwrite formula cells â€” EXCEPT the UID column
+            ' Never overwrite formula cells — EXCEPT the UID column
             If dstCell.HasFormula And colMap(srcCol) <> dstUIDCol Then GoTo NextSrcCol
 
             dstCell.Value = srcWS.Cells(srcRow, srcCol).Value
@@ -545,7 +545,55 @@ NextSrcRow:
     Next srcRow
 
     ' ---------------------------------------------------------
-    ' 10. Close source without saving
+    ' 10. Add dashed right border on the last column of each
+    '     section (the column BEFORE each divider), from Row 3
+    '     down to the totals row (Portfolio row).
+    ' ---------------------------------------------------------
+    dstLastCol = dstWS.UsedRange.Column + dstWS.UsedRange.Columns.Count - 1
+
+    ' Find the Portfolio/totals row: scan from insertRow downward
+    ' for a row containing "Portfolio" in the Property Name area
+    Dim borderLastRow As Long
+    borderLastRow = insertRow + 1  ' default: 1 row after last data row
+
+    Dim findRow As Long
+    For findRow = insertRow To insertRow + 5
+        Dim cellVal As String
+        Dim fc As Long
+        For fc = 1 To 10
+            cellVal = Trim(CStr(dstWS.Cells(findRow, fc).Value))
+            If LCase(cellVal) = "portfolio" Then
+                borderLastRow = findRow
+                GoTo FoundPortfolioRow
+            End If
+        Next fc
+    Next findRow
+
+FoundPortfolioRow:
+
+    Dim bCol As Long
+    For bCol = 2 To dstLastCol
+        Dim bR1 As String
+        Dim bR3 As String
+        Dim bR4 As String
+        bR1 = Trim(CStr(dstWS.Cells(1, bCol).Value))
+        bR3 = Trim(CStr(dstWS.Cells(3, bCol).Value))
+        bR4 = Trim(CStr(dstWS.Cells(4, bCol).Value))
+
+        ' This is a divider column — apply border to previous column
+        If bR3 <> "" And bR1 = "" And bR4 = "" Then
+            If bCol - 1 >= 1 Then
+                With dstWS.Range(dstWS.Cells(3, bCol - 1), _
+                     dstWS.Cells(borderLastRow, bCol - 1)).Borders(xlEdgeRight)
+                    .LineStyle = xlDash
+                    .Weight = xlThin
+                End With
+            End If
+        End If
+    Next bCol
+
+    ' ---------------------------------------------------------
+    ' 11. Close source without saving
     ' ---------------------------------------------------------
     srcWB.Close SaveChanges:=False
 
@@ -554,6 +602,6 @@ NextSrcRow:
 
 Cleanup:
     Application.ScreenUpdating = True
-    Application.DisplayAlerts = True
+    Application.DisplayAlerts  = True
 
 End Sub
